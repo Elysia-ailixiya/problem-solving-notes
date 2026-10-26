@@ -17,3 +17,10 @@
   - 记录“无法启用远程控制，请重试”的完整定位过程
   - 说明为什么开启 Clash 全局模式和 TUN 开关后仍然无效
   - 包含 TUN 权限失败、DNS/直连验证、`HTTPS_PROXY` 修复及回滚方法
+
+### Windows / iPad 局域网文件共享
+
+- [Windows 笔记本与 iPad 通过 SMB 局域网共享文件：免密码访问配置与排查](./Windows-iPad/SMB-LAN-File-Sharing/README.md)
+  - 记录自定义 `Share_file` 共享、iPad“文件”App 通过 Guest 连接与下载的操作
+  - 涵盖用户名/密码无效、额外出现 `Users` 共享、关闭公用文件夹共享后无法访问等现象
+  - 区分实际验证结果与可能原因，并说明匿名共享的安全边界
