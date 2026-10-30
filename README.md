@@ -1,34 +1,44 @@
 # problem-solving-notes
 
-个人问题排查、解决方案与技术笔记。
+个人问题排查与解决记录。按软件或使用场景分类，每个问题独立保存，首页用于查找，完整过程放在对应文章中。
 
-## 已记录问题
+## 问题索引
 
-### ChatGPT / Chrome
+### ChatGPT
 
-- [ChatGPT 无法读取/控制 Chrome 标签页：`nodeRepl.fetch request failed` 排查与修复](./ChatGPT/Chrome-Control-nodeRepl-fetch-failed/README.md)
-  - 记录 Windows + ChatGPT Windows 客户端 + Chrome 扩展 + Clash 环境下的完整排查过程
-  - 包含根因定位、CUA Node 代理验证、UTF-8 BOM 问题、最终修复方式
-  - 附带自动检查/修复/恢复脚本和使用说明
+| 场景 / 报错 | 记录 | 查阅提示 |
+| --- | --- | --- |
+| Windows App 反复重连、`os error 10061` | [代理端口不一致与修复](./ChatGPT/Windows-App-os-error-10061/README.md) | 后续已取消固定代理变量，启用 `respect_system_proxy`；第 9 节记录当前方案及验证范围 |
+| 无法读取或控制 Chrome、`nodeRepl.fetch request failed` | [Chrome 控制排查](./ChatGPT/Chrome-Control-nodeRepl-fetch-failed/README.md) | 记录当时 CUA Node 代理补丁；含 [修复脚本](./ChatGPT/Chrome-Control-nodeRepl-fetch-failed/Fix-ChatGPTChromeProxy.ps1) 与 [使用说明](./ChatGPT/Chrome-Control-nodeRepl-fetch-failed/USAGE.md) |
+| 无法启用远程控制、WebSocket `10060` | [远程控制超时排查](./ChatGPT/Remote-Control-WebSocket-10060/README.md) | 记录当时 TUN 权限失败与显式代理修复；固定端口方案应结合上面的当前配置记录阅读 |
 
-### ChatGPT / Windows App 网络连接
+### Windows 与设备互联
 
-- [ChatGPT Windows App 反复重连：`os error 10061`（Clash Verge 代理端口不一致）排查与修复](./ChatGPT/Windows-App-os-error-10061/README.md)
-  - 记录普通对话与 Codex 同时断线、网页正常的故障现象及诊断命令
-  - 对比 Windows 系统代理 `127.0.0.1:7897` 与旧 `HTTPS_PROXY=http://127.0.0.1:7890` 的差异
-  - 包含环境变量调整、客户端重启、复发排查和回滚步骤；区分已验证事实与推断
-  - 后续已取消固定 `7897` 环境变量，启用 `respect_system_proxy`；记录实际 HTTP/WebSocket 验证、本机备份与适用范围
+| 场景 / 报错 | 记录 | 内容 |
+| --- | --- | --- |
+| iPad 访问 Windows SMB 共享 | [局域网文件共享配置与排查](./Windows-iPad/SMB-LAN-File-Sharing/README.md) | Guest 连接、自定义共享、凭据错误、额外出现 Users 共享等问题 |
 
-### ChatGPT / 远程控制
+## 目录约定
 
-- [ChatGPT Windows 无法启用远程控制：WebSocket `10060` 超时排查与修复](./ChatGPT/Remote-Control-WebSocket-10060/README.md)
-  - 记录“无法启用远程控制，请重试”的完整定位过程
-  - 说明为什么开启 Clash 全局模式和 TUN 开关后仍然无效
-  - 包含 TUN 权限失败、DNS/直连验证、`HTTPS_PROXY` 修复及回滚方法
+```text
+软件或场景/
+└── 问题名称或关键报错/
+    ├── README.md       # 问题、证据、处理和结果
+    ├── USAGE.md        # 有独立工具时再添加
+    ├── 修复脚本         # 有必要时再添加
+    └── assets/         # 本问题使用的图片等附件，按需创建
+```
 
-### Windows / iPad 局域网文件共享
+沿用现有的 `ChatGPT/`、`Windows-iPad/` 分类与文章路径。问题较多时再按需增加分类索引，避免首页不断堆叠排查全文。
 
-- [Windows 笔记本与 iPad 通过 SMB 局域网共享文件：免密码访问配置与排查](./Windows-iPad/SMB-LAN-File-Sharing/README.md)
-  - 记录自定义 `Share_file` 共享、iPad“文件”App 通过 Guest 连接与下载的操作
-  - 涵盖用户名/密码无效、额外出现 `Users` 共享、关闭公用文件夹共享后无法访问等现象
-  - 区分实际验证结果与可能原因，并说明匿名共享的安全边界
+## 后续维护规则
+
+- **新增问题：** 先查已有记录。同一问题的补充排查、复发或方案更新写入原文章；原因或场景不同的问题再建目录，并更新首页索引。
+- **记录结构：** 说明日期与环境、故障现象、实际证据、原因判断、处理步骤、验证结果、适用范围和回滚方式。没有输出或反馈的操作标为建议步骤。
+- **方案更新：** 在文章开头标明当前适用方案和旧方案的关系，保留必要历史证据；不要让旧的固定端口命令被误当作当前配置。
+- **事实边界：** 区分已执行、已验证、用户反馈与推断；一次诊断通过不写成所有功能或所有代理均已验证。
+- **控制体积：** 日志只保存与问题有关的片段；图片和附件放在所属问题目录。安装包、完整运行环境、缓存和可重新生成的大文件通常用下载链接或生成说明代替。
+- **信息保留：** 按本仓库所有者要求，可保留实际端口、本机地址和路径；密码、令牌、会话 Cookie、私钥等凭据不进入记录。
+- **链接与历史：** 更新时检查相对链接，尽量保持现有路径；确需迁移时更新引用并保留入口。大规模删除或清理 Git 历史另行确认。
+
+> 维护方式：在聊天中提交新问题、解决经过或整理要求后，可由助手读取仓库最新内容，完成归档、索引维护及提交。该约定不代表已启用后台自动监控。
