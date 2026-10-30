@@ -255,3 +255,128 @@ curl.exe -I --max-time 15 --proxy http://127.0.0.1:7897 https://chatgpt.com/
 > **关键发现：** Windows 系统代理为 `127.0.0.1:7897`，但 `HTTPS_PROXY` 为 `http://127.0.0.1:7890`。  
 > **有效处理方向：** 核对 Clash Verge 实际监听端口，将应用使用的代理环境变量与之匹配，并完整重启客户端。  
 > **结果：** 用户确认恢复正常；具体失败连接的端口尚未通过进程日志单独验证。
+
+
+## 9. 后续改进：取消固定端口，跟随 Windows 系统代理
+
+> 执行日期：2026-10-30。以下为本次已执行的修改与检查；不再只是推荐步骤。端口与本机路径按实际情况保留。
+
+### 9.1 为什么继续调整
+
+前面的修复将旧端口 `7890` 调整为当前可用的 `7897`，恢复了连接，但仍依赖固定端口。以后换用其他代理软件或修改监听端口，环境变量可能再次过期。
+
+早期远程控制排查曾手动写入用户级 `HTTPS_PROXY=http://127.0.0.1:7890`。这是让当时的后台显式使用已有的 Clash 端口，并不是将 Clash 的监听端口改成 `7890`。
+
+本次改为：清除用户级固定代理变量，让支持的 ChatGPT/Codex 原生网络组件跟随 Windows 当前系统代理。**这不是完全恢复所有默认设置**：系统代理跟随选项默认关闭，本次明确将其开启。
+
+### 9.2 修改前实际检查结果
+
+| 项目 | 实际状态 |
+| --- | --- |
+| Windows 系统代理 | `ProxyEnable=1`，`ProxyServer=127.0.0.1:7897`，无 PAC 地址 |
+| 用户级 `HTTP_PROXY` | `http://127.0.0.1:7897` |
+| 用户级 `HTTPS_PROXY` | `http://127.0.0.1:7897` |
+| 本次检查进程中的上述两个变量 | 均为 `http://127.0.0.1:7897` |
+| 机器级代理变量 | 本次检查的 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 未发现非空值 |
+| `respect_system_proxy` | 当前版本支持，修改前未开启 |
+| 后台版本 | `codex-cli 0.166.0-alpha.5.1` |
+| 本次调用的后台程序 | `C:\Users\29489\AppData\Local\OpenAI\Codex\bin\22cfb1d302613eae\codex.exe` |
+
+对当前 CUA Node runtime 和当前 browser 插件 scripts 中的 JS/MJS 进行了定向搜索，未发现 `127.0.0.1:7890`、`127.0.0.1:7897` 或之前补丁使用的 `setGlobalProxyFromEnv` 匹配；未修改这些组件。该检查不等于对所有历史版本及文件做过完整审计。
+
+### 9.3 先临时验证，再保存配置
+
+先在单独的检查进程中清除固定代理环境变量，并临时开启系统代理跟随：
+
+```powershell
+Remove-Item Env:HTTP_PROXY,Env:HTTPS_PROXY,Env:ALL_PROXY -ErrorAction SilentlyContinue
+& 'C:/Users/29489/AppData/Local/OpenAI/Codex/bin/22cfb1d302613eae/codex.exe' -c features.respect_system_proxy=true doctor --network-only --json
+```
+
+临时检查的 HTTP 与 WebSocket 均通过，之后才保存下列修改。
+
+**修改一：** 在 `C:\Users\29489\.codex\config.toml` 现有的 `[features]` 表中增加：
+
+```toml
+[features]
+respect_system_proxy = true
+```
+
+实际保留了现有表中的其他设置；不要重复新增同名表或覆盖整个配置文件。
+
+**修改二：** 删除两项用户级固定代理变量：
+
+```powershell
+[Environment]::SetEnvironmentVariable('HTTP_PROXY', $null, 'User')
+[Environment]::SetEnvironmentVariable('HTTPS_PROXY', $null, 'User')
+```
+
+Windows 系统代理仍保持 `127.0.0.1:7897`，未更改 Clash Verge 的监听端口、WinHTTP 或机器级环境变量。
+
+### 9.4 保存后的实际验证
+
+保存后，在移除了固定代理变量的检查进程中执行诊断，**不再传入临时的功能覆盖参数**：
+
+```powershell
+Remove-Item Env:HTTP_PROXY,Env:HTTPS_PROXY,Env:ALL_PROXY -ErrorAction SilentlyContinue
+& 'C:/Users/29489/AppData/Local/OpenAI/Codex/bin/22cfb1d302613eae/codex.exe' doctor --network-only --json
+```
+
+实际关键结果：
+
+```text
+config.toml parse: ok
+proxy env vars: none
+respect system proxy: enabled
+
+network.provider_reachability: ok
+active provider endpoints are reachable over HTTP
+ChatGPT inference URL: reachable (HTTP 405)
+
+network.websocket_reachability: ok
+Responses WebSocket handshake succeeded
+handshake result: HTTP 101 Switching Protocols
+```
+
+这里的 HTTP `405` 是诊断探测收到的响应，不是一次真实对话生成成功的证明；WebSocket 的 `101` 表明本次握手成功。
+
+总体诊断为 `warning`，原因是已有配置项 `computer_use.windows.always_allowed_app_ids` 不被当前版本识别；该项未在本次修改范围内。网络检查全部为 `ok`，不能把总体 warning 写成网络失败，也不能写成诊断完全无警告。
+
+### 9.5 重启与适用范围
+
+保存用户级环境变量和配置，不会自动更新已经运行的 ChatGPT 及其父进程的环境。因此仍需：
+
+1. 保持当前代理正常运行并开启 Windows 系统代理。
+2. 完整退出 ChatGPT，包括托盘进程，再重新打开。
+3. 若启动后仍继承旧环境，注销 Windows 后重新登录。
+4. 分别测试普通对话、Codex、远程控制和浏览器控制。
+
+本次已验证：**无固定代理环境变量的独立后台检查进程，可加载已保存配置，并完成 HTTP 可达性检查和 Responses WebSocket 握手。**
+
+本次未验证：完整重启后的所有 App 功能、实际切换 Clash/Clash Verge/其他代理软件的效果、远程控制专用通道，以及 Chrome/CUA 等独立组件的全部请求。
+
+后续切换代理软件时，应让新软件正确接管 Windows 系统代理；为避免争抢配置，通常只让当前使用的软件接管。若运行中切换后连接仍使用旧路径，先重启 App。本设置只适用于支持它的 Codex 原生网络客户端，不能保证所有插件、Node 进程、命令行工具自动跟随系统代理。
+
+### 9.6 本机备份与回滚
+
+修改前已在本机备份：
+
+```text
+C:\Users\29489\AppData\Local\OpenAI\ProxySettingsBackups\20261030-201827\config.toml.bak
+C:\Users\29489\AppData\Local\OpenAI\ProxySettingsBackups\20261030-201827\user-proxy-before.json
+C:\Users\29489\AppData\Local\OpenAI\ProxySettingsBackups\20261030-201827\Restore-PreviousProxy.ps1
+```
+
+备份中的两个用户级变量原值均为 `http://127.0.0.1:7897`。需要撤销本次修改时，可在本机执行：
+
+```powershell
+& 'C:/Users/29489/AppData/Local/OpenAI/ProxySettingsBackups/20261030-201827/Restore-PreviousProxy.ps1'
+```
+
+该脚本恢复这两个用户级变量，并移除本次新增的 `respect_system_proxy = true` 行；然后仍需完整重启 App，必要时注销重登。上述文件是本机备份，不随仓库分发；未上传完整个人配置文件。
+
+### 9.7 官方依据
+
+- [OpenAI：Use the system proxy for native client requests](https://learn.chatgpt.com/docs/enterprise/managed-configuration#use-the-system-proxy-for-native-client-requests)
+
+官方说明该选项适用于 ChatGPT desktop / Codex 使用的原生 Codex runtime，默认关闭，Windows 支持系统代理发现；其范围不涵盖所有桌面请求、插件、浏览器请求和 shell 命令。
