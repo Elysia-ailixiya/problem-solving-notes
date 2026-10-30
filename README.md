@@ -11,6 +11,13 @@
   - 包含根因定位、CUA Node 代理验证、UTF-8 BOM 问题、最终修复方式
   - 附带自动检查/修复/恢复脚本和使用说明
 
+### ChatGPT / Windows App 网络连接
+
+- [ChatGPT Windows App 反复重连：`os error 10061`（Clash Verge 代理端口不一致）排查与修复](./ChatGPT/Windows-App-os-error-10061/README.md)
+  - 记录普通对话与 Codex 同时断线、网页正常的故障现象及诊断命令
+  - 对比 Windows 系统代理 `127.0.0.1:7897` 与旧 `HTTPS_PROXY=http://127.0.0.1:7890` 的差异
+  - 包含环境变量调整、客户端重启、复发排查和回滚步骤；区分已验证事实与推断
+
 ### ChatGPT / 远程控制
 
 - [ChatGPT Windows 无法启用远程控制：WebSocket `10060` 超时排查与修复](./ChatGPT/Remote-Control-WebSocket-10060/README.md)
