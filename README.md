@@ -18,6 +18,12 @@
 | --- | --- | --- |
 | iPad 访问 Windows SMB 共享 | [局域网文件共享配置与排查](./Windows-iPad/SMB-LAN-File-Sharing/README.md) | Guest 连接、自定义共享、凭据错误、额外出现 Users 共享等问题 |
 
+### Linux 与 NAS
+
+| 场景 / 报错 | 记录 | 内容与当前阶段 |
+| --- | --- | --- |
+| Intel J1900 NAS 安装 Ubuntu Server 26.04.1，`failed to register the EFI boot entry: Input/output error` | [UEFI GRUB 安装失败与修复（阶段 1）](./Linux/Ubuntu-Server-J1900-UEFI-GRUB-Install/README.md) | 已验证 `--no-nvram --removable` 修复及 SSD 启动、本地登录；网络、SSH、Docker、Samba 等待后续补充 |
+
 ## 目录约定
 
 ```text
